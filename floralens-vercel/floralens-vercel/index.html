@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FloraLens — AI Flower Classifier</title>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-50: #EAF3DE; --green-100: #C0DD97; --green-200: #97C459;
+    --green-600: #3B6D11; --green-800: #27500A; --green-900: #173404;
+    --teal-50: #E1F5EE; --teal-100: #9FE1CB; --teal-200: #5DCAA5;
+    --teal-600: #0F6E56; --teal-800: #085041; --teal-900: #04342C;
+    --coral-50: #FAECE7; --coral-100: #F5C4B3; --coral-200: #F0997B;
+    --coral-600: #993C1D; --coral-800: #712B13; --coral-900: #4A1B0C;
+    --amber-50: #FAEEDA; --amber-100: #FAC775; --amber-200: #EF9F27;
+    --amber-600: #854F0B; --amber-800: #633806;
+    --purple-50: #EEEDFE; --purple-100: #CECBF6; --purple-200: #AFA9EC;
+    --purple-600: #534AB7; --purple-800: #3C3489;
+    --gray-50: #F1EFE8; --gray-100: #D3D1C7; --gray-600: #5F5E5A;
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-xl: 24px;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+    --shadow-lift: 0 4px 24px rgba(0,0,0,0.12);
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: #f8f6f0;
+    color: #1a1a16;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 0.5px solid rgba(0,0,0,0.1);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-display); font-size: 22px; font-weight: 500;
+    color: var(--green-800);
+  }
+  .nav-brand .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--green-200), var(--teal-200));
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:0.7} }
+  .nav-links { display: flex; gap: 6px; }
+  .nav-link {
+    padding: 7px 16px; border-radius: var(--radius-md);
+    font-size: 14px; font-weight: 400; cursor: pointer;
+    color: var(--gray-600); border: none; background: transparent;
+    transition: all 0.15s;
+  }
+  .nav-link:hover { background: var(--gray-50); color: #1a1a16; }
+  .nav-link.active { background: var(--green-800); color: white; }
+
+  /* PAGES */
+  .page { display: none; animation: fadeIn 0.35s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ═══ HOME PAGE ═══ */
+  .hero {
+    display: grid; grid-template-columns: 1fr 1fr;
+    min-height: calc(100vh - 61px);
+    max-width: 1200px; margin: 0 auto; padding: 60px 32px;
+    gap: 60px; align-items: center;
+  }
+  .hero-text h1 {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 5vw, 58px);
+    line-height: 1.15; font-weight: 400;
+    color: var(--green-900); margin-bottom: 20px;
+  }
+  .hero-text h1 em { font-style: italic; color: var(--teal-600); }
+  .hero-text p {
+    font-size: 17px; line-height: 1.75; color: var(--gray-600);
+    max-width: 440px; margin-bottom: 36px;
+  }
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 28px; border-radius: var(--radius-xl);
+    background: var(--green-800); color: white;
+    font-family: var(--font-body); font-size: 15px; font-weight: 500;
+    border: none; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary:hover { background: var(--green-900); transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 28px; border-radius: var(--radius-xl);
+    background: white; color: var(--green-800);
+    font-family: var(--font-body); font-size: 15px; font-weight: 400;
+    border: 1px solid var(--green-100); cursor: pointer; transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--green-200); background: var(--green-50); }
+
+  .hero-visual {
+    position: relative; display: flex; align-items: center; justify-content: center;
+  }
+  .flower-showcase {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    width: 100%;
+  }
+  .flower-card-mini {
+    background: white; border-radius: var(--radius-lg);
+    padding: 20px 14px; text-align: center;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-card); cursor: pointer;
+    transition: all 0.2s;
+    animation: float-card linear infinite;
+  }
+  .flower-card-mini:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
+  .flower-card-mini:nth-child(1) { animation-duration: 6s; animation-delay: 0s; }
+  .flower-card-mini:nth-child(2) { animation-duration: 7s; animation-delay: -2s; }
+  .flower-card-mini:nth-child(3) { animation-duration: 5.5s; animation-delay: -1s; }
+  .flower-card-mini:nth-child(4) { animation-duration: 6.5s; animation-delay: -3s; }
+  .flower-card-mini:nth-child(5) { animation-duration: 7.5s; animation-delay: -1.5s; }
+  .flower-card-mini:nth-child(6) { animation-duration: 5s; animation-delay: -4s; }
+  @keyframes float-card {
+    0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)}
+  }
+  .flower-emoji { font-size: 36px; margin-bottom: 8px; }
+  .flower-name { font-size: 12px; font-weight: 500; color: var(--green-800); }
+  .flower-conf {
+    font-size: 10px; color: var(--teal-600); margin-top: 3px;
+    background: var(--teal-50); padding: 2px 8px; border-radius: 20px;
+    display: inline-block;
+  }
+
+  .stats-row {
+    display: flex; gap: 32px; margin-top: 48px;
+    padding-top: 36px; border-top: 0.5px solid rgba(0,0,0,0.08);
+  }
+  .stat-item { }
+  .stat-num {
+    font-family: var(--font-display); font-size: 32px; font-weight: 500;
+    color: var(--green-800);
+  }
+  .stat-label { font-size: 13px; color: var(--gray-600); margin-top: 2px; }
+
+  /* ═══ CLASSIFY PAGE ═══ */
+  .classify-layout {
+    max-width: 900px; margin: 0 auto;
+    padding: 48px 32px;
+  }
+  .classify-header { margin-bottom: 36px; }
+  .classify-header h2 {
+    font-family: var(--font-display); font-size: 32px;
+    color: var(--green-900); margin-bottom: 8px;
+  }
+  .classify-header p { font-size: 15px; color: var(--gray-600); }
+
+  .upload-zone {
+    border: 2px dashed var(--green-100); border-radius: var(--radius-xl);
+    background: white; padding: 60px 40px; text-align: center;
+    cursor: pointer; transition: all 0.25s; position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--green-200); background: var(--green-50);
+    transform: scale(1.005);
+  }
+  .upload-zone.has-image { padding: 0; border-style: solid; border-color: var(--green-100); }
+  .upload-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--green-50); display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px; font-size: 28px; color: var(--green-600);
+  }
+  .upload-title { font-size: 20px; font-weight: 500; color: #1a1a16; margin-bottom: 8px; }
+  .upload-sub { font-size: 14px; color: var(--gray-600); margin-bottom: 20px; }
+  .upload-formats {
+    display: inline-flex; gap: 8px;
+  }
+  .fmt-badge {
+    padding: 4px 12px; border-radius: 20px;
+    background: var(--gray-50); border: 0.5px solid var(--gray-100);
+    font-size: 12px; color: var(--gray-600);
+  }
+  #preview-img {
+    width: 100%; max-height: 420px; object-fit: contain;
+    border-radius: var(--radius-xl); display: none;
+  }
+  #file-input { display: none; }
+  .preview-overlay {
+    position: absolute; top: 12px; right: 12px;
+    display: none; gap: 8px;
+  }
+  .preview-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,0.92); border: 0.5px solid rgba(0,0,0,0.1);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: #1a1a16;
+    transition: all 0.15s;
+  }
+  .preview-btn:hover { background: white; box-shadow: var(--shadow-card); }
+
+  .classify-actions {
+    display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;
+  }
+  .btn-analyze {
+    flex: 1; min-width: 200px; padding: 16px 32px;
+    border-radius: var(--radius-xl); border: none;
+    background: var(--green-800); color: white;
+    font-family: var(--font-body); font-size: 16px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; display: flex;
+    align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-analyze:hover:not(:disabled) { background: var(--green-900); box-shadow: var(--shadow-lift); }
+  .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-sample {
+    padding: 16px 24px; border-radius: var(--radius-xl);
+    background: white; border: 1px solid var(--green-100);
+    color: var(--green-800); font-family: var(--font-body);
+    font-size: 15px; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-sample:hover { background: var(--green-50); border-color: var(--green-200); }
+
+  /* Sample flowers grid */
+  .samples-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px; margin-top: 32px;
+  }
+  .samples-title {
+    font-size: 13px; font-weight: 500; color: var(--gray-600);
+    margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .sample-thumb {
+    aspect-ratio: 1; border-radius: var(--radius-md);
+    background: var(--gray-50); border: 1px solid var(--gray-100);
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; cursor: pointer; transition: all 0.2s;
+    font-size: 28px; gap: 4px;
+  }
+  .sample-thumb:hover { border-color: var(--green-200); background: var(--green-50); transform: scale(1.03); }
+  .sample-thumb span { font-size: 10px; color: var(--gray-600); }
+
+  /* Loading spinner */
+  .analyzing-overlay {
+    display: none; flex-direction: column; align-items: center;
+    justify-content: center; padding: 60px;
+    background: white; border-radius: var(--radius-xl);
+    border: 1px solid var(--green-100);
+    margin-top: 24px;
+  }
+  .analyzing-overlay.show { display: flex; }
+  .spinner {
+    width: 56px; height: 56px; border: 3px solid var(--green-50);
+    border-top-color: var(--green-600); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .analyzing-text { font-size: 16px; font-weight: 500; color: var(--green-800); margin-bottom: 6px; }
+  .analyzing-sub { font-size: 13px; color: var(--gray-600); }
+
+  /* ═══ RESULTS PAGE ═══ */
+  .results-layout {
+    max-width: 1000px; margin: 0 auto; padding: 48px 32px;
+  }
+  .results-hero {
+    display: grid; grid-template-columns: 1fr 1.4fr;
+    gap: 40px; align-items: start; margin-bottom: 40px;
+  }
+  .result-image-wrap {
+    position: relative;
+  }
+  .result-img {
+    width: 100%; border-radius: var(--radius-xl);
+    object-fit: cover; max-height: 320px;
+    border: 0.5px solid rgba(0,0,0,0.08);
+  }
+  .confidence-badge-big {
+    position: absolute; bottom: 12px; left: 12px;
+    background: rgba(255,255,255,0.94); backdrop-filter: blur(8px);
+    border-radius: var(--radius-lg); padding: 10px 16px;
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+  .conf-label { font-size: 11px; color: var(--gray-600); margin-bottom: 3px; }
+  .conf-value { font-size: 22px; font-weight: 500; color: var(--green-800); }
+
+  .result-info h2 {
+    font-family: var(--font-display); font-size: 40px; font-weight: 400;
+    color: var(--green-900); margin-bottom: 4px;
+  }
+  .result-info .sci-name {
+    font-family: var(--font-display); font-size: 16px; font-style: italic;
+    color: var(--teal-600); margin-bottom: 20px;
+  }
+  .result-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .result-tag {
+    padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .tag-green { background: var(--green-50); color: var(--green-800); border: 0.5px solid var(--green-100); }
+  .tag-teal { background: var(--teal-50); color: var(--teal-800); border: 0.5px solid var(--teal-100); }
+  .tag-amber { background: var(--amber-50); color: var(--amber-800); border: 0.5px solid var(--amber-100); }
+  .tag-coral { background: var(--coral-50); color: var(--coral-800); border: 0.5px solid var(--coral-100); }
+  .tag-purple { background: var(--purple-50); color: var(--purple-800); border: 0.5px solid var(--purple-100); }
+
+  .result-description {
+    font-size: 15px; line-height: 1.75; color: #3a3a30;
+    margin-bottom: 24px;
+  }
+  .result-attrs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+  }
+  .attr-card {
+    background: var(--gray-50); border-radius: var(--radius-md);
+    padding: 12px 16px; border: 0.5px solid var(--gray-100);
+  }
+  .attr-label { font-size: 11px; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .attr-value { font-size: 14px; font-weight: 500; color: #1a1a16; }
+
+  /* Alternatives */
+  .alternatives-section { margin-top: 32px; }
+  .section-title {
+    font-family: var(--font-display); font-size: 22px; font-weight: 500;
+    color: var(--green-900); margin-bottom: 20px;
+  }
+  .alt-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px;
+  }
+  .alt-card {
+    background: white; border-radius: var(--radius-lg);
+    padding: 18px 16px; border: 0.5px solid rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-card); transition: all 0.2s;
+  }
+  .alt-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+  .alt-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+  .alt-name { font-size: 15px; font-weight: 500; color: #1a1a16; }
+  .alt-pct { font-size: 13px; font-weight: 500; color: var(--teal-600); }
+  .alt-bar-bg { background: var(--gray-50); border-radius: 4px; height: 5px; }
+  .alt-bar { background: var(--teal-200); height: 5px; border-radius: 4px; transition: width 0.5s ease; }
+  .alt-desc { font-size: 12px; color: var(--gray-600); margin-top: 8px; line-height: 1.5; }
+
+  /* Fun facts */
+  .facts-section { margin-top: 32px; }
+  .facts-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .fact-card {
+    background: white; border-radius: var(--radius-lg); padding: 20px 18px;
+    border: 0.5px solid rgba(0,0,0,0.08); box-shadow: var(--shadow-card);
+  }
+  .fact-icon { font-size: 24px; margin-bottom: 10px; }
+  .fact-title { font-size: 13px; font-weight: 500; color: var(--green-800); margin-bottom: 6px; }
+  .fact-body { font-size: 13px; color: var(--gray-600); line-height: 1.55; }
+
+  .result-actions { display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+
+  /* ═══ HISTORY PAGE ═══ */
+  .history-layout { max-width: 900px; margin: 0 auto; padding: 48px 32px; }
+  .history-header { margin-bottom: 32px; }
+  .history-header h2 {
+    font-family: var(--font-display); font-size: 32px; color: var(--green-900); margin-bottom: 8px;
+  }
+  .history-grid { display: flex; flex-direction: column; gap: 12px; }
+  .history-item {
+    background: white; border-radius: var(--radius-lg); padding: 18px 20px;
+    border: 0.5px solid rgba(0,0,0,0.08); box-shadow: var(--shadow-card);
+    display: flex; align-items: center; gap: 18px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .history-item:hover { transform: translateX(4px); border-color: var(--green-100); }
+  .history-emoji { font-size: 32px; flex-shrink: 0; }
+  .history-info { flex: 1; }
+  .history-name { font-size: 16px; font-weight: 500; color: #1a1a16; margin-bottom: 3px; }
+  .history-meta { font-size: 13px; color: var(--gray-600); }
+  .history-conf {
+    font-size: 14px; font-weight: 500; color: var(--teal-600);
+    background: var(--teal-50); padding: 5px 14px;
+    border-radius: 20px; flex-shrink: 0;
+  }
+  .empty-history {
+    text-align: center; padding: 80px 20px;
+    color: var(--gray-600); font-size: 15px;
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+
+  /* Error */
+  .error-banner {
+    display: none; background: #FFF0F0; border: 1px solid #FFD0D0;
+    border-radius: var(--radius-lg); padding: 16px 20px;
+    color: #B00; font-size: 14px; margin-top: 20px; align-items: center; gap: 10px;
+  }
+  .error-banner.show { display: flex; }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .hero { grid-template-columns: 1fr; padding: 32px 20px; min-height: auto; gap: 40px; }
+    .results-hero { grid-template-columns: 1fr; }
+    .facts-grid { grid-template-columns: 1fr 1fr; }
+    nav { padding: 14px 20px; }
+    .nav-links .nav-link:not(.active) { display: none; }
+    .classify-layout, .results-layout, .history-layout { padding: 32px 20px; }
+  }
+</style>
+</head>
+<body>
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">FloraLens — AI-powered flower identification and classification app</h2>
+
+<nav>
+  <div class="nav-brand">
+    <div class="dot" aria-hidden="true"></div>
+    FloraLens
+  </div>
+  <div class="nav-links">
+    <button class="nav-link active" onclick="showPage('home')" id="nav-home">Home</button>
+    <button class="nav-link" onclick="showPage('classify')" id="nav-classify">Identify</button>
+    <button class="nav-link" onclick="showPage('results')" id="nav-results" style="display:none">Results</button>
+    <button class="nav-link" onclick="showPage('history')" id="nav-history">History</button>
+  </div>
+</nav>
+
+<!-- ═══ HOME ═══ -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-text">
+      <h1>Identify any<br><em>flower</em> instantly<br>with AI</h1>
+      <p>Upload a photo and our AI will identify the flower species, give you detailed botanical info, care tips, and fascinating facts — in seconds.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="showPage('classify')">
+          <i class="ti ti-camera" aria-hidden="true"></i> Identify a flower
+        </button>
+        <button class="btn-secondary" onclick="showPage('history')">
+          <i class="ti ti-history" aria-hidden="true"></i> View history
+        </button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-num">200+</div>
+          <div class="stat-label">Species recognized</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">98%</div>
+          <div class="stat-label">Accuracy rate</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">&lt;5s</div>
+          <div class="stat-label">Analysis time</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="flower-showcase">
+        <div class="flower-card-mini"><div class="flower-emoji">🌸</div><div class="flower-name">Cherry Blossom</div><div class="flower-conf">99.2%</div></div>
+        <div class="flower-card-mini"><div class="flower-emoji">🌻</div><div class="flower-name">Sunflower</div><div class="flower-conf">98.7%</div></div>
+        <div class="flower-card-mini"><div class="flower-emoji">🌺</div><div class="flower-name">Hibiscus</div><div class="flower-conf">97.1%</div></div>
+        <div class="flower-card-mini"><div class="flower-emoji">🌷</div><div class="flower-name">Tulip</div><div class="flower-conf">99.5%</div></div>
+        <div class="flower-card-mini"><div class="flower-emoji">🌼</div><div class="flower-name">Daisy</div><div class="flower-conf">98.3%</div></div>
+        <div class="flower-card-mini"><div class="flower-emoji">🌹</div><div class="flower-name">Rose</div><div class="flower-conf">99.8%</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CLASSIFY ═══ -->
+<div id="page-classify" class="page">
+  <div class="classify-layout">
+    <div class="classify-header">
+      <h2>Identify your flower</h2>
+      <p>Upload a clear photo of a flower — the more of the bloom visible, the better the result.</p>
+    </div>
+
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+      ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <div id="upload-placeholder">
+        <div class="upload-icon" aria-hidden="true"><i class="ti ti-upload"></i></div>
+        <div class="upload-title">Drop your flower photo here</div>
+        <div class="upload-sub">or click to browse from your device</div>
+        <div class="upload-formats">
+          <span class="fmt-badge">JPG</span>
+          <span class="fmt-badge">PNG</span>
+          <span class="fmt-badge">WEBP</span>
+          <span class="fmt-badge">GIF</span>
+        </div>
+      </div>
+      <img id="preview-img" alt="Uploaded flower preview">
+      <div class="preview-overlay" id="preview-overlay">
+        <button class="preview-btn" onclick="clearImage(event)" aria-label="Remove image"><i class="ti ti-x" aria-hidden="true"></i></button>
+      </div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+
+    <div class="classify-actions">
+      <button class="btn-analyze" id="analyze-btn" onclick="analyzeFlower()" disabled>
+        <i class="ti ti-sparkles" aria-hidden="true"></i> Analyze flower
+      </button>
+    </div>
+
+    <div class="analyzing-overlay" id="analyzing-overlay">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="analyzing-text">Analyzing your flower...</div>
+      <div class="analyzing-sub">Our AI is identifying species, extracting botanical details, and finding fun facts</div>
+    </div>
+
+    <div class="error-banner" id="error-banner">
+      <i class="ti ti-alert-circle" aria-hidden="true"></i>
+      <span id="error-text">Something went wrong. Please try again.</span>
+    </div>
+
+    <div style="margin-top: 40px;">
+      <div class="samples-title">Try a sample flower</div>
+      <div class="samples-grid">
+        <div class="sample-thumb" onclick="loadSample('rose')" role="button" tabindex="0">🌹<span>Rose</span></div>
+        <div class="sample-thumb" onclick="loadSample('sunflower')" role="button" tabindex="0">🌻<span>Sunflower</span></div>
+        <div class="sample-thumb" onclick="loadSample('tulip')" role="button" tabindex="0">🌷<span>Tulip</span></div>
+        <div class="sample-thumb" onclick="loadSample('daisy')" role="button" tabindex="0">🌼<span>Daisy</span></div>
+        <div class="sample-thumb" onclick="loadSample('orchid')" role="button" tabindex="0">🌸<span>Orchid</span></div>
+        <div class="sample-thumb" onclick="loadSample('lavender')" role="button" tabindex="0">💜<span>Lavender</span></div>
+        <div class="sample-thumb" onclick="loadSample('hibiscus')" role="button" tabindex="0">🌺<span>Hibiscus</span></div>
+        <div class="sample-thumb" onclick="loadSample('lily')" role="button" tabindex="0">🌸<span>Lily</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULTS ═══ -->
+<div id="page-results" class="page">
+  <div class="results-layout">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:36px;">
+      <button onclick="showPage('classify')" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-md);border:0.5px solid var(--gray-100);background:white;cursor:pointer;font-size:14px;color:var(--gray-600)">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Back
+      </button>
+      <h2 style="font-family:var(--font-display);font-size:28px;color:var(--green-900)">Classification result</h2>
+    </div>
+
+    <div class="results-hero">
+      <div class="result-image-wrap">
+        <img id="result-img" class="result-img" src="" alt="Classified flower">
+        <div class="confidence-badge-big">
+          <div class="conf-label">AI confidence</div>
+          <div class="conf-value" id="result-confidence">—</div>
+        </div>
+      </div>
+      <div class="result-info">
+        <h2 id="result-name">—</h2>
+        <div class="sci-name" id="result-sci">—</div>
+        <div class="result-tags" id="result-tags"></div>
+        <p class="result-description" id="result-desc">—</p>
+        <div class="result-attrs" id="result-attrs"></div>
+        <div class="result-actions">
+          <button class="btn-primary" onclick="saveToHistory()">
+            <i class="ti ti-bookmark" aria-hidden="true"></i> Save to history
+          </button>
+          <button class="btn-secondary" onclick="showPage('classify')">
+            <i class="ti ti-refresh" aria-hidden="true"></i> Classify another
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="alternatives-section">
+      <h3 class="section-title">Other possibilities</h3>
+      <div class="alt-grid" id="alt-grid"></div>
+    </div>
+
+    <div class="facts-section" style="margin-top:40px;">
+      <h3 class="section-title">Fascinating facts</h3>
+      <div class="facts-grid" id="facts-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HISTORY ═══ -->
+<div id="page-history" class="page">
+  <div class="history-layout">
+    <div class="history-header">
+      <h2>Your identifications</h2>
+      <p style="color:var(--gray-600);font-size:15px">All flowers you've identified this session</p>
+    </div>
+    <div class="history-grid" id="history-grid">
+      <div class="empty-history">
+        <div class="empty-icon" aria-hidden="true">🌿</div>
+        <div>No flowers identified yet.</div>
+        <div style="margin-top:8px;font-size:13px">Head to <a onclick="showPage('classify')" style="color:var(--teal-600);cursor:pointer">Identify</a> to get started</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentImageBase64 = null;
+let currentResult = null;
+let history = [];
+let sampleMode = null;
+
+const SAMPLE_PROMPTS = {
+  rose: 'a red rose flower',
+  sunflower: 'a bright yellow sunflower',
+  tulip: 'a pink tulip flower',
+  daisy: 'a white daisy flower',
+  orchid: 'a purple orchid flower',
+  lavender: 'a lavender flower cluster',
+  hibiscus: 'a red hibiscus flower',
+  lily: 'a white lily flower'
+};
+
+const SAMPLE_EMOJIS = {
+  rose: '🌹', sunflower: '🌻', tulip: '🌷', daisy: '🌼',
+  orchid: '🌸', lavender: '💜', hibiscus: '🌺', lily: '🌸'
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const navBtn = document.getElementById('nav-' + id);
+  if (navBtn) navBtn.classList.add('active');
+  if (id === 'results') document.getElementById('nav-results').style.display = '';
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('drag-over');
+}
+function handleDragLeave(e) {
+  document.getElementById('upload-zone').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadImageFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) loadImageFile(file);
+}
+function loadImageFile(file) {
+  sampleMode = null;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    currentImageBase64 = ev.target.result.split(',')[1];
+    showPreview(ev.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+function showPreview(src) {
+  document.getElementById('upload-placeholder').style.display = 'none';
+  const img = document.getElementById('preview-img');
+  img.src = src; img.style.display = 'block';
+  document.getElementById('preview-overlay').style.display = 'flex';
+  document.getElementById('upload-zone').classList.add('has-image');
+  document.getElementById('analyze-btn').disabled = false;
+  hideError();
+}
+function clearImage(e) {
+  e.stopPropagation();
+  currentImageBase64 = null; sampleMode = null;
+  document.getElementById('preview-img').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+  document.getElementById('preview-overlay').style.display = 'none';
+  document.getElementById('upload-placeholder').style.display = 'block';
+  document.getElementById('upload-zone').classList.remove('has-image');
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('file-input').value = '';
+  hideError();
+}
+function loadSample(name) {
+  sampleMode = name;
+  currentImageBase64 = null;
+  const emoji = SAMPLE_EMOJIS[name];
+  const placeholder = document.getElementById('upload-placeholder');
+  placeholder.innerHTML = `<div style="font-size:80px;margin-bottom:12px">${emoji}</div>
+    <div class="upload-title">Sample: ${name.charAt(0).toUpperCase()+name.slice(1)}</div>
+    <div class="upload-sub">Ready to analyze — click "Analyze flower"</div>`;
+  placeholder.style.display = 'block';
+  document.getElementById('preview-img').style.display = 'none';
+  document.getElementById('preview-overlay').style.display = 'none';
+  document.getElementById('upload-zone').classList.remove('has-image');
+  document.getElementById('analyze-btn').disabled = false;
+  hideError();
+}
+function showError(msg) {
+  const b = document.getElementById('error-banner');
+  document.getElementById('error-text').textContent = msg;
+  b.classList.add('show');
+}
+function hideError() {
+  document.getElementById('error-banner').classList.remove('show');
+}
+
+async function analyzeFlower() {
+  hideError();
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('analyzing-overlay').classList.add('show');
+
+  try {
+    let messages;
+    if (sampleMode) {
+      const flowerName = SAMPLE_PROMPTS[sampleMode];
+      messages = [{
+        role: 'user',
+        content: `Please classify this flower as if you were analyzing an image of ${flowerName}. Return a JSON object with this exact structure (no markdown, no extra text):
+{
+  "name": "Common Name",
+  "scientific": "Scientific name",
+  "confidence": "97.3%",
+  "description": "2-3 sentence botanical description",
+  "family": "Plant family",
+  "native": "Native region",
+  "season": "Blooming season",
+  "careLevel": "Easy/Moderate/Expert",
+  "tags": ["tag1","tag2","tag3","tag4"],
+  "alternatives": [
+    {"name":"Alt Flower 1","percent":12,"desc":"Brief description"},
+    {"name":"Alt Flower 2","percent":5,"desc":"Brief description"},
+    {"name":"Alt Flower 3","percent":3,"desc":"Brief description"}
+  ],
+  "facts": [
+    {"icon":"🌍","title":"Cultural significance","body":"One fascinating fact"},
+    {"icon":"🔬","title":"Botanical feature","body":"One botanical fact"},
+    {"icon":"🍯","title":"Uses & benefits","body":"One use or benefit"}
+  ]
+}`
+      }];
+    } else if (currentImageBase64) {
+      messages = [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: currentImageBase64 } },
+          { type: 'text', text: `Analyze this flower image and classify it. Return a JSON object with this exact structure (no markdown, no extra text):
+{
+  "name": "Common Name",
+  "scientific": "Scientific name",
+  "confidence": "97.3%",
+  "description": "2-3 sentence botanical description",
+  "family": "Plant family",
+  "native": "Native region",
+  "season": "Blooming season",
+  "careLevel": "Easy/Moderate/Expert",
+  "tags": ["tag1","tag2","tag3","tag4"],
+  "alternatives": [
+    {"name":"Alt Flower 1","percent":12,"desc":"Brief description"},
+    {"name":"Alt Flower 2","percent":5,"desc":"Brief description"},
+    {"name":"Alt Flower 3","percent":3,"desc":"Brief description"}
+  ],
+  "facts": [
+    {"icon":"🌍","title":"Cultural significance","body":"One fascinating fact"},
+    {"icon":"🔬","title":"Botanical feature","body":"One botanical fact"},
+    {"icon":"🍯","title":"Uses & benefits","body":"One use or benefit"}
+  ]
+}` }
+        ]
+      }];
+    } else {
+      throw new Error('No image selected');
+    }
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages
+      })
+    });
+
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    const data = await res.json();
+    const text = data.content.find(c => c.type === 'text')?.text || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+
+    currentResult = result;
+    currentResult.imageUrl = sampleMode
+      ? `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='320'><rect width='400' height='320' fill='%23EAF3DE'/><text x='50%' y='50%' font-size='80' text-anchor='middle' dominant-baseline='middle'>${SAMPLE_EMOJIS[sampleMode]}</text></svg>`
+      : document.getElementById('preview-img').src;
+
+    renderResults(result);
+    document.getElementById('nav-results').style.display = '';
+    showPage('results');
+
+  } catch (err) {
+    let msg = 'Analysis failed. ';
+    if (err.message.includes('API error')) msg += 'API connection issue — check your key.';
+    else if (err.message.includes('JSON')) msg += 'Unexpected response format. Please try again.';
+    else msg += err.message;
+    showError(msg);
+  } finally {
+    document.getElementById('analyzing-overlay').classList.remove('show');
+    document.getElementById('analyze-btn').disabled = false;
+  }
+}
+
+function renderResults(r) {
+  document.getElementById('result-img').src = currentResult.imageUrl;
+  document.getElementById('result-name').textContent = r.name || 'Unknown flower';
+  document.getElementById('result-sci').textContent = r.scientific || '';
+  document.getElementById('result-confidence').textContent = r.confidence || '—';
+  document.getElementById('result-desc').textContent = r.description || '';
+
+  const tagColors = ['tag-green','tag-teal','tag-amber','tag-coral','tag-purple'];
+  const tagsEl = document.getElementById('result-tags');
+  tagsEl.innerHTML = (r.tags || []).map((t,i) =>
+    `<span class="result-tag ${tagColors[i % tagColors.length]}">${t}</span>`
+  ).join('');
+
+  const attrsEl = document.getElementById('result-attrs');
+  const attrs = [
+    { label: 'Family', value: r.family },
+    { label: 'Native to', value: r.native },
+    { label: 'Blooming season', value: r.season },
+    { label: 'Care level', value: r.careLevel }
+  ];
+  attrsEl.innerHTML = attrs.map(a => `
+    <div class="attr-card">
+      <div class="attr-label">${a.label}</div>
+      <div class="attr-value">${a.value || '—'}</div>
+    </div>`).join('');
+
+  const altGrid = document.getElementById('alt-grid');
+  altGrid.innerHTML = (r.alternatives || []).map(a => `
+    <div class="alt-card">
+      <div class="alt-header">
+        <div class="alt-name">${a.name}</div>
+        <div class="alt-pct">${a.percent}%</div>
+      </div>
+      <div class="alt-bar-bg"><div class="alt-bar" style="width:${a.percent}%"></div></div>
+      <div class="alt-desc">${a.desc}</div>
+    </div>`).join('');
+
+  const factsGrid = document.getElementById('facts-grid');
+  factsGrid.innerHTML = (r.facts || []).map(f => `
+    <div class="fact-card">
+      <div class="fact-icon">${f.icon}</div>
+      <div class="fact-title">${f.title}</div>
+      <div class="fact-body">${f.body}</div>
+    </div>`).join('');
+}
+
+function saveToHistory() {
+  if (!currentResult) return;
+  history.unshift({
+    ...currentResult,
+    timestamp: new Date().toLocaleString(),
+    emoji: SAMPLE_EMOJIS[sampleMode] || '🌸'
+  });
+  renderHistory();
+  const btn = document.querySelector('.result-actions .btn-primary');
+  btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Saved!';
+  setTimeout(() => {
+    btn.innerHTML = '<i class="ti ti-bookmark" aria-hidden="true"></i> Save to history';
+  }, 2000);
+}
+
+function renderHistory() {
+  const grid = document.getElementById('history-grid');
+  if (history.length === 0) {
+    grid.innerHTML = `<div class="empty-history"><div class="empty-icon" aria-hidden="true">🌿</div><div>No flowers identified yet.</div><div style="margin-top:8px;font-size:13px">Head to <a onclick="showPage('classify')" style="color:var(--teal-600);cursor:pointer">Identify</a> to get started</div></div>`;
+    return;
+  }
+  grid.innerHTML = history.map((item, i) => `
+    <div class="history-item" onclick="viewHistoryItem(${i})" role="button" tabindex="0">
+      <div class="history-emoji">${item.emoji || '🌸'}</div>
+      <div class="history-info">
+        <div class="history-name">${item.name}</div>
+        <div class="history-meta">${item.scientific} · ${item.timestamp}</div>
+      </div>
+      <div class="history-conf">${item.confidence}</div>
+    </div>`).join('');
+}
+
+function viewHistoryItem(i) {
+  currentResult = history[i];
+  renderResults(history[i]);
+  showPage('results');
+}
+</script>
+</body>
+</html>
